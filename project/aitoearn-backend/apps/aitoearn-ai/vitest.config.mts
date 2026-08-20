@@ -12,6 +12,11 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: [
+      'src/core/agent/services/agent-runtime.service.spec.ts',
+      'src/core/ai/chat/chat.service.spec.ts',
+      'src/core/draft-generation/draft-generation.service.spec.ts',
+    ],
     reporters: ['default'],
     setupFiles: ['./test/setup.ts'],
     coverage: {

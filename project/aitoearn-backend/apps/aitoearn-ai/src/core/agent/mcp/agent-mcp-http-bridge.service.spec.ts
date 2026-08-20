@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { UserType } from '@yikart/common'
 import { describe, expect, it, vi } from 'vitest'
 import { McpServerName } from '../agent.constants'
@@ -39,7 +40,7 @@ function createBridge() {
   return { bridge, servers, taskScopedSessionTools }
 }
 
-describe('AgentMcpHttpBridgeService', () => {
+describe('agentMcpHttpBridgeService', () => {
   it('creates a fresh server for each supported bridge name', () => {
     const { bridge, servers } = createBridge()
 
@@ -65,5 +66,33 @@ describe('AgentMcpHttpBridgeService', () => {
 
     expect(() => bridge.createServer(McpServerName.SessionTools, 'user-1', UserType.User))
       .toThrow('Unsupported agent MCP server: sessionTools')
+  })
+
+  it('closes the MCP server even when transport cleanup fails', async () => {
+    const { bridge } = createBridge()
+    const requestError = new Error('request failed')
+    const transportClose = vi.spyOn(StreamableHTTPServerTransport.prototype, 'close')
+      .mockRejectedValueOnce(new Error('transport close failed'))
+    const handleRequest = vi.spyOn(StreamableHTTPServerTransport.prototype, 'handleRequest')
+      .mockRejectedValueOnce(requestError)
+    const server = {
+      connect: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    }
+    const privateBridge = bridge as unknown as {
+      handleServerRequest: (server: McpServer, req: never, res: never, body: unknown) => Promise<void>
+    }
+
+    await expect(privateBridge.handleServerRequest(
+      server as unknown as McpServer,
+      {} as never,
+      { once: vi.fn() } as never,
+      {},
+    )).rejects.toBe(requestError)
+
+    expect(transportClose).toHaveBeenCalledOnce()
+    expect(server.close).toHaveBeenCalledOnce()
+    handleRequest.mockRestore()
+    transportClose.mockRestore()
   })
 })

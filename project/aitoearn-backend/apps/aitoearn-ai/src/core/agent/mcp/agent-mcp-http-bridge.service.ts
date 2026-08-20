@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { UserType } from '@yikart/common'
 import { McpServerName } from '../agent.constants'
 import { ImageEditMcp } from './image-edit.mcp'
@@ -27,6 +27,8 @@ export const CODEX_BRIDGED_MCP_SERVERS = [
 
 @Injectable()
 export class AgentMcpHttpBridgeService {
+  private readonly logger = new Logger(AgentMcpHttpBridgeService.name)
+
   constructor(
     private readonly mediaMcp: MediaMcp,
     private readonly utilMcp: UtilMcp,
@@ -108,14 +110,27 @@ export class AgentMcpHttpBridgeService {
       if (cleanedUp)
         return
       cleanedUp = true
-      await transport.close()
-      await server.close()
+
+      try {
+        await transport.close()
+      }
+      catch (error) {
+        this.logger.warn(error, 'Failed to close agent MCP HTTP transport')
+      }
+
+      try {
+        await server.close()
+      }
+      catch (error) {
+        this.logger.warn(error, 'Failed to close agent MCP server')
+      }
     }
+
+    res.once('finish', () => void cleanup())
+    res.once('close', () => void cleanup())
 
     try {
       await server.connect(transport)
-      res.once('finish', () => void cleanup())
-      res.once('close', () => void cleanup())
       await transport.handleRequest(req, res, body)
     }
     catch (error) {

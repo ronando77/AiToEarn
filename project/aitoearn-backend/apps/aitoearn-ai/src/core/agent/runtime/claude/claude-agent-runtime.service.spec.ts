@@ -3,7 +3,7 @@ import { of } from 'rxjs'
 import { vi } from 'vitest'
 import { ClaudeAgentRuntimeService } from './claude-agent-runtime.service'
 
-describe('ClaudeAgentRuntimeService', () => {
+describe('claudeAgentRuntimeService', () => {
   it('delegates task lifecycle calls to the existing runtime', async () => {
     const taskStream = of({ type: 'keep_alive' } as never)
     const delegate = {

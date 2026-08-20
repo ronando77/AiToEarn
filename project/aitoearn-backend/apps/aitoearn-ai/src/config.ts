@@ -175,7 +175,7 @@ const agentModelNameSchema = z.string().min(1).regex(/^[^,]+$/)
 export const agentConfigSchema = z.object({
   baseUrl: z.string(),
   apiKey: z.string(),
-  runtime: z.enum(['claude']).default('claude').describe('Agent runtime provider'),
+  runtime: z.enum(['claude', 'codex']).default('claude').describe('Agent runtime provider'),
   models: z.array(agentModelNameSchema).min(1).default(defaultAgentModels).describe('Agent 可用模型列表'),
   defaultModel: agentModelNameSchema.default('claude-opus-4-6').describe('Agent 默认模型'),
   backgroundModel: agentModelNameSchema.default('claude-haiku-4-5-20251001').describe('Agent 后台子任务模型'),
@@ -218,3 +218,7 @@ export const appConfigSchema = z.object({
 export class AppConfig extends createZodDto(appConfigSchema) { }
 
 export const config = selectConfig(AppConfig)
+
+export const runtimeProcessEnvironment = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+)

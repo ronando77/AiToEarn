@@ -1,7 +1,7 @@
 import type { McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-agent-sdk'
 import type { Observable } from 'rxjs'
 import { createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common'
 import { z } from 'zod'
 import { AiAvailabilityService } from '../../ai-availability'
 import { McpServerName } from '../agent.constants'
@@ -10,7 +10,7 @@ import {
   ContentGenerationTaskResultUnionSchema,
   ContentGenerationTaskTitleUpdatedChunkVo,
 } from '../agent.vo'
-import { successResult, wrapTool } from './mcp.utils'
+import { errorResult, successResult, wrapTool } from './mcp.utils'
 import { UtilMcp, UtilToolName } from './util.mcp'
 
 type TaskResult = z.infer<typeof ContentGenerationTaskResultUnionSchema>
@@ -24,11 +24,11 @@ export interface TaskScopedSessionToolsRegistration {
 
 interface TaskScopedSessionToolsEntry extends TaskScopedSessionToolsRegistration {
   readonly ownerUserId: string
-  complete: () => void
+  close: () => Promise<void>
 }
 
 @Injectable()
-export class TaskScopedSessionToolsService {
+export class TaskScopedSessionToolsService implements OnModuleDestroy {
   private readonly logger = new Logger(TaskScopedSessionToolsService.name)
   private readonly entries = new Map<string, TaskScopedSessionToolsEntry>()
 
@@ -43,6 +43,8 @@ export class TaskScopedSessionToolsService {
     }
 
     let taskResult: TaskResult | undefined
+    let acceptingCalls = true
+    const inFlightCalls = new Set<Promise<void>>()
 
     const outputTaskResultTool = wrapTool(
       this.logger,
@@ -50,13 +52,33 @@ export class TaskScopedSessionToolsService {
       'output task result JSON, the result will be included in the completion message.',
       ContentGenerationTaskResultSchema.shape,
       async (args) => {
+        if (!acceptingCalls) {
+          return errorResult('Session tools are no longer active')
+        }
+
         taskResult = args.result
         return successResult('Task result submitted successfully')
       },
       this.aiAvailability,
     )
 
-    const [setTitleTool, titleUpdate$, completeTitleUpdate] = this.utilMcp.createSetTitleTool(taskId)
+    const [setTitleTool, titleUpdate$, completeTitleUpdate] = this.utilMcp.createSetTitleTool(
+      taskId,
+      async (operation) => {
+        if (!acceptingCalls)
+          return false
+
+        const inFlightCall = operation()
+        inFlightCalls.add(inFlightCall)
+        try {
+          await inFlightCall
+          return true
+        }
+        finally {
+          inFlightCalls.delete(inFlightCall)
+        }
+      },
+    )
 
     const entry: TaskScopedSessionToolsEntry = {
       taskId,
@@ -68,39 +90,61 @@ export class TaskScopedSessionToolsService {
         tools: [outputTaskResultTool, setTitleTool],
       }),
       getTaskResult: () => taskResult,
-      complete: completeTitleUpdate,
+      close: async () => {
+        acceptingCalls = false
+        await Promise.allSettled([...inFlightCalls])
+        completeTitleUpdate()
+      },
     }
 
     this.entries.set(taskId, entry)
     return entry
   }
 
+  async* runTaskScoped<T>(
+    taskId: string,
+    ownerUserId: string,
+    execute: (registration: TaskScopedSessionToolsRegistration) => AsyncIterable<T>,
+  ): AsyncGenerator<T> {
+    const registration = this.register(taskId, ownerUserId)
+    try {
+      yield* execute(registration)
+    }
+    finally {
+      await this.unregisterEntry(taskId, registration)
+    }
+  }
+
   createServerForUser(taskId: string, userId: string): McpSdkServerConfigWithInstance {
-    const entry = this.getEntry(taskId)
-    if (entry.ownerUserId !== userId) {
-      throw new ForbiddenException(`Session tools do not belong to user: ${userId}`)
+    const entry = this.entries.get(taskId)
+    if (!entry || entry.ownerUserId !== userId) {
+      // Do not reveal whether another user's task is currently registered.
+      throw new NotFoundException(`Session tools are not registered for task: ${taskId}`)
     }
     return entry.createServer()
   }
 
-  unregister(taskId: string): void {
+  async unregister(taskId: string): Promise<void> {
+    await this.unregisterEntry(taskId)
+  }
+
+  private async unregisterEntry(
+    taskId: string,
+    expectedRegistration?: TaskScopedSessionToolsRegistration,
+  ): Promise<void> {
     const entry = this.entries.get(taskId)
-    if (!entry)
+    if (!entry || (expectedRegistration && entry !== expectedRegistration))
       return
 
-    entry.complete()
     this.entries.delete(taskId)
+    await entry.close()
   }
 
   has(taskId: string): boolean {
     return this.entries.has(taskId)
   }
 
-  private getEntry(taskId: string): TaskScopedSessionToolsEntry {
-    const entry = this.entries.get(taskId)
-    if (!entry) {
-      throw new NotFoundException(`Session tools are not registered for task: ${taskId}`)
-    }
-    return entry
+  async onModuleDestroy(): Promise<void> {
+    await Promise.all([...this.entries.keys()].map(taskId => this.unregister(taskId)))
   }
 }

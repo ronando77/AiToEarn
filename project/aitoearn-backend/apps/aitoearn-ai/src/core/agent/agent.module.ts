@@ -9,6 +9,8 @@ import { AgentTaskTimeoutScheduler } from './agent-task-timeout.scheduler'
 import { AgentController } from './agent.controller'
 import { AgentService } from './agent.service'
 import { ClaudeCodeRouterModule } from './claude-code-router/claude-code-router.module'
+import { AgentMcpHttpBridgeController } from './mcp/agent-mcp-http-bridge.controller'
+import { AgentMcpHttpBridgeService } from './mcp/agent-mcp-http-bridge.service'
 import { ImageEditMcp } from './mcp/image-edit.mcp'
 import { MediaMcp } from './mcp/media.mcp'
 import { SubtitleMcp } from './mcp/subtitle.mcp'
@@ -32,9 +34,10 @@ import { SkillInitService } from './skill-init.service'
     RelayMediaModule.forRoot(config.ai.relay),
     ClaudeCodeRouterModule,
   ],
-  controllers: [AgentController],
+  controllers: [AgentController, AgentMcpHttpBridgeController],
   providers: [
     AgentService,
+    AgentMcpHttpBridgeService,
     MediaMcp,
     AideoMcp,
     UtilMcp,

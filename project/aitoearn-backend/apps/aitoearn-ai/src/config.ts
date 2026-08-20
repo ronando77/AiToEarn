@@ -175,6 +175,7 @@ const agentModelNameSchema = z.string().min(1).regex(/^[^,]+$/)
 export const agentConfigSchema = z.object({
   baseUrl: z.string(),
   apiKey: z.string(),
+  runtime: z.enum(['claude']).default('claude').describe('Agent runtime provider'),
   models: z.array(agentModelNameSchema).min(1).default(defaultAgentModels).describe('Agent 可用模型列表'),
   defaultModel: agentModelNameSchema.default('claude-opus-4-6').describe('Agent 默认模型'),
   backgroundModel: agentModelNameSchema.default('claude-haiku-4-5-20251001').describe('Agent 后台子任务模型'),

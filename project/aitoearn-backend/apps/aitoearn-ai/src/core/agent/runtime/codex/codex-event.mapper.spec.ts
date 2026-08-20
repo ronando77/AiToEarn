@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapCodexSdkEvent } from './codex-event.mapper'
 
- describe('mapCodexSdkEvent', () => {
+describe('mapCodexSdkEvent', () => {
   it('maps a started thread to an AiToEarn session', () => {
     expect(mapCodexSdkEvent({
       type: 'thread.started',

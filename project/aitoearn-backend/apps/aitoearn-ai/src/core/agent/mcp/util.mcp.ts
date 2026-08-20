@@ -102,12 +102,16 @@ export class UtilMcp {
     ] as const
   }
 
-  readonly server: McpSdkServerConfigWithInstance = createSdkMcpServer({
-    name: McpServerName.Util,
-    version: '1.0.0',
-    tools: [
-      this.wait,
-      this.getCurrentTime,
-    ],
-  })
+  createServer(): McpSdkServerConfigWithInstance {
+    return createSdkMcpServer({
+      name: McpServerName.Util,
+      version: '1.0.0',
+      tools: [
+        this.wait,
+        this.getCurrentTime,
+      ],
+    })
+  }
+
+  readonly server: McpSdkServerConfigWithInstance = this.createServer()
 }

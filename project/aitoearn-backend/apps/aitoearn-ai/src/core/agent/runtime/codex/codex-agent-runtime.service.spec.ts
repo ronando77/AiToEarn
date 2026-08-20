@@ -215,6 +215,40 @@ describe('codexAgentRuntimeService', () => {
   })
 
   it.each([
+    {
+      name: 'Completed',
+      result: undefined,
+      status: ContentGenerationTaskStatus.Completed,
+    },
+    {
+      name: 'RequiresAction',
+      result: [{
+        type: 'fullContent',
+        action: 'createChannel',
+        title: 'Title',
+        description: 'Description',
+        tags: [],
+        medias: [],
+        platform: 'tiktok',
+      }],
+      status: ContentGenerationTaskStatus.RequiresAction,
+    },
+  ])('emits Error instead of $name when terminal status persistence fails', async ({ result, status }) => {
+    const { params, registration, repository, runtime } = createRuntime()
+    registration.getTaskResult.mockReturnValue(result)
+    repository.updateStatus.mockImplementation(async (_taskId: string, nextStatus: ContentGenerationTaskStatus) => {
+      if (nextStatus === status)
+        throw new Error('terminal persistence failed')
+    })
+
+    const chunks = await collectRuntime(runtime, params)
+
+    expect(chunks.some(chunk => chunk.type === AgentMessageType.Result)).toBe(false)
+    expect(chunks.at(-1)?.type).toBe(AgentMessageType.Error)
+    expect(repository.updateStatus).toHaveBeenLastCalledWith('task-1', ContentGenerationTaskStatus.Error)
+  })
+
+  it.each([
     ['turn.failed', { type: 'error', message: 'turn failed', fatal: true } as CodexRuntimeEvent],
     ['top-level error', { type: 'error', message: 'stream failed', fatal: true } as CodexRuntimeEvent],
   ])('maps %s to one existing error chunk and Error status', async (_name, fatalEvent) => {
@@ -232,6 +266,32 @@ describe('codexAgentRuntimeService', () => {
     for (const chunk of chunks)
       expect(ContentGenerationTaskChunkVoSchema.safeParse(chunk).success).toBe(true)
     expect(repository.updateStatus).toHaveBeenLastCalledWith('task-1', ContentGenerationTaskStatus.Error)
+  })
+
+  it.each(['message', 'status'] as const)('still emits the compatible error chunk when error %s persistence fails', async (failure) => {
+    const { params, repository, runtime } = createRuntime([
+      { type: 'session.started', sessionId: 'thread-1' },
+      { type: 'error', message: 'stream failed', fatal: true },
+    ])
+    if (failure === 'message') {
+      repository.updateMessage.mockImplementation(async (_taskId: string, message: { type: AgentMessageType }) => {
+        if (message.type === AgentMessageType.Error)
+          throw new Error('error message persistence failed')
+      })
+    }
+    else {
+      repository.updateStatus.mockImplementation(async (_taskId: string, status: ContentGenerationTaskStatus) => {
+        if (status === ContentGenerationTaskStatus.Error)
+          throw new Error('error status persistence failed')
+      })
+    }
+
+    const chunks = await collectRuntime(runtime, params)
+
+    expect(chunks.map(chunk => chunk.type)).toEqual([
+      AgentMessageType.Init,
+      AgentMessageType.Error,
+    ])
   })
 
   it('treats a stream ending without turn.completed as Error', async () => {

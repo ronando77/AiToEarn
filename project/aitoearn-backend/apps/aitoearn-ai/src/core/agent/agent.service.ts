@@ -85,7 +85,10 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     if (!dto.taskId)
       return this.runtime.createContentGenerationTask(params)
 
-    return from(this.contentGenerateRepository.getByUserIdAndId(userId, dto.taskId)).pipe(
+    return from(this.contentGenerateRepository.getByUserIdAndId(userId, dto.taskId).then(
+      task => task,
+      () => undefined,
+    )).pipe(
       mergeMap((task) => {
         // Persisted Codex sessions are namespaced; legacy bare IDs always belong to Claude.
         const runtimeName = task?.sessionId && isCodexSessionId(task.sessionId)

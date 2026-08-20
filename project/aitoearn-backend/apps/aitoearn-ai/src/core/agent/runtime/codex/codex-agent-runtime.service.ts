@@ -226,13 +226,10 @@ export class CodexAgentRuntimeService implements AgentRuntime {
             const taskResult = registration?.getTaskResult()
             const finalStatus = this.compatibility.getSuccessStatus(taskResult)
             const compatible = this.compatibility.createResultChunk(finalResponse, taskResult, event.usage)
-            if (!terminal.tryCommit(finalStatus))
-              break
-
             await this.contentGenerateRepository.updateMessage(taskId, compatible.message)
-            terminalPersistence = this.contentGenerateRepository.updateStatus(taskId, finalStatus)
-            await terminalPersistence
-            this.emitChunk(subscriber, compatible.chunk)
+            await this.contentGenerateRepository.updateStatus(taskId, finalStatus)
+            if (terminal.tryCommit(finalStatus))
+              this.emitChunk(subscriber, compatible.chunk)
             break
           }
           case 'error':
@@ -257,12 +254,21 @@ export class CodexAgentRuntimeService implements AgentRuntime {
       else if (terminal.tryCommit(ContentGenerationTaskStatus.Error)) {
         this.logger.error({ error, taskId }, 'Codex task failed')
         const errorChunk = this.compatibility.createErrorChunk(error)
-        if (taskId) {
-          await this.contentGenerateRepository.updateMessage(taskId, { ...errorChunk })
-          terminalPersistence = this.contentGenerateRepository.updateStatus(taskId, ContentGenerationTaskStatus.Error)
-          await terminalPersistence
-        }
         this.emitChunk(subscriber, errorChunk)
+        if (taskId) {
+          try {
+            await this.contentGenerateRepository.updateMessage(taskId, { ...errorChunk })
+          }
+          catch (persistenceError) {
+            this.logger.error({ error: persistenceError, taskId }, 'Failed to persist Codex task error message')
+          }
+          try {
+            await this.contentGenerateRepository.updateStatus(taskId, ContentGenerationTaskStatus.Error)
+          }
+          catch (persistenceError) {
+            this.logger.error({ error: persistenceError, taskId }, 'Failed to persist Codex task error status')
+          }
+        }
       }
     }
     finally {

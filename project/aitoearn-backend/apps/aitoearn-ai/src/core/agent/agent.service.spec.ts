@@ -64,6 +64,18 @@ describe('agentService runtime routing', () => {
     expect(runtimes.claude.createContentGenerationTask).not.toHaveBeenCalled()
   })
 
+  it('preserves Claude SSE errors when resume routing lookup rejects', async () => {
+    const { createTask, repository, runtimes } = createService()
+    repository.getByUserIdAndId.mockRejectedValue(new Error('lookup failed'))
+    runtimes.claude.createContentGenerationTask.mockReturnValue(of({ type: 'error', message: 'legacy error' }))
+
+    const chunk = await lastValueFrom(createTask('task-1'))
+
+    expect(chunk).toEqual({ type: 'error', message: 'legacy error' })
+    expect(runtimes.claude.createContentGenerationTask).toHaveBeenCalledOnce()
+    expect(runtimes.codex.createContentGenerationTask).not.toHaveBeenCalled()
+  })
+
   it('broadcasts aborts and waits for all runtime tasks', async () => {
     const { redis, registry, service } = createService()
     await service.onModuleInit()

@@ -18,6 +18,8 @@ import { AideoMcp } from './mcp/volcengine/aideo.mcp'
 import { DramaRecapMcp } from './mcp/volcengine/drama-recap.mcp'
 import { StyleTransferMcp } from './mcp/volcengine/style-transfer.mcp'
 import { VideoEditMcp } from './mcp/volcengine/video-edit.mcp'
+import { AgentRuntimeRegistry } from './runtime/agent-runtime.registry'
+import { ClaudeAgentRuntimeService } from './runtime/claude/claude-agent-runtime.service'
 import { AgentRuntimeService } from './services/agent-runtime.service'
 import { SkillInitService } from './skill-init.service'
 
@@ -45,6 +47,8 @@ import { SkillInitService } from './skill-init.service'
     SubtitleMcp,
     SkillInitService,
     AgentRuntimeService,
+    ClaudeAgentRuntimeService,
+    AgentRuntimeRegistry,
   ],
   exports: [AgentService],
 })

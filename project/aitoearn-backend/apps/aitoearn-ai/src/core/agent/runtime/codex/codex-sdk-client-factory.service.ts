@@ -56,6 +56,13 @@ export class CodexSdkClientFactoryService implements CodexClientFactoryPort {
         `AITOEARN_CODEX_MCP_HEADER_${index}`,
       ]),
     )
+    const noProxy = [...new Set([
+      runtimeProcessEnvironment['NO_PROXY'],
+      runtimeProcessEnvironment['no_proxy'],
+      '127.0.0.1',
+      'localhost',
+      '::1',
+    ].flatMap(value => value?.split(',') ?? []).map(value => value.trim()).filter(Boolean))].join(',')
     const httpServer = (url: string) => ({
       url,
       env_http_headers: environmentHeaders,
@@ -82,6 +89,8 @@ export class CodexSdkClientFactoryService implements CodexClientFactoryPort {
       apiKey: config.agent.apiKey,
       env: {
         ...runtimeProcessEnvironment,
+        NO_PROXY: noProxy,
+        no_proxy: noProxy,
         ...headerEnvironment,
       },
       config: {

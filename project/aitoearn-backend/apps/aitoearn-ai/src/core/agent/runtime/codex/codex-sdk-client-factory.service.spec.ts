@@ -64,6 +64,8 @@ describe('codex SDK adapters', () => {
       required: true,
     })
     expect(sdk.options.env.AITOEARN_CODEX_MCP_HEADER_0).toBe('Bearer token')
+    expect(sdk.options.env.NO_PROXY.split(',')).toEqual(expect.arrayContaining(['127.0.0.1', 'localhost', '::1']))
+    expect(sdk.options.env.no_proxy).toBe(sdk.options.env.NO_PROXY)
     expect(JSON.stringify(sdk.options.config)).not.toContain('Bearer token')
   })
 })

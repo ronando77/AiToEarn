@@ -14,6 +14,7 @@ import { AgentMcpHttpBridgeService } from './mcp/agent-mcp-http-bridge.service'
 import { ImageEditMcp } from './mcp/image-edit.mcp'
 import { MediaMcp } from './mcp/media.mcp'
 import { SubtitleMcp } from './mcp/subtitle.mcp'
+import { TaskScopedSessionToolsService } from './mcp/task-scoped-session-tools.service'
 import { UtilMcp } from './mcp/util.mcp'
 import { VideoUtilsMcp } from './mcp/video-utils.mcp'
 import { AideoMcp } from './mcp/volcengine/aideo.mcp'
@@ -38,6 +39,7 @@ import { SkillInitService } from './skill-init.service'
   providers: [
     AgentService,
     AgentMcpHttpBridgeService,
+    TaskScopedSessionToolsService,
     MediaMcp,
     AideoMcp,
     UtilMcp,

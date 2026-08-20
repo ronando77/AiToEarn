@@ -6,6 +6,7 @@ import { UserType } from '@yikart/common'
 import { McpServerName } from '../agent.constants'
 import { ImageEditMcp } from './image-edit.mcp'
 import { MediaMcp } from './media.mcp'
+import { TaskScopedSessionToolsService } from './task-scoped-session-tools.service'
 import { UtilMcp } from './util.mcp'
 import { VideoUtilsMcp } from './video-utils.mcp'
 import { AideoMcp } from './volcengine/aideo.mcp'
@@ -35,6 +36,7 @@ export class AgentMcpHttpBridgeService {
     private readonly videoUtilsMcp: VideoUtilsMcp,
     private readonly styleTransferMcp: StyleTransferMcp,
     private readonly imageEditMcp: ImageEditMcp,
+    private readonly taskScopedSessionTools: TaskScopedSessionToolsService,
   ) {}
 
   createServer(serverName: string, userId: string, userType: UserType): McpServer {
@@ -64,6 +66,10 @@ export class AgentMcpHttpBridgeService {
     return config.instance as unknown as McpServer
   }
 
+  createTaskScopedServer(taskId: string, userId: string): McpServer {
+    return this.taskScopedSessionTools.createServerForUser(taskId, userId).instance as unknown as McpServer
+  }
+
   async handleRequest(
     serverName: string,
     userId: string,
@@ -72,6 +78,26 @@ export class AgentMcpHttpBridgeService {
     body: unknown,
   ): Promise<void> {
     const server = this.createServer(serverName, userId, UserType.User)
+    await this.handleServerRequest(server, req, res, body)
+  }
+
+  async handleTaskScopedRequest(
+    taskId: string,
+    userId: string,
+    req: Request,
+    res: Response,
+    body: unknown,
+  ): Promise<void> {
+    const server = this.createTaskScopedServer(taskId, userId)
+    await this.handleServerRequest(server, req, res, body)
+  }
+
+  private async handleServerRequest(
+    server: McpServer,
+    req: Request,
+    res: Response,
+    body: unknown,
+  ): Promise<void> {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

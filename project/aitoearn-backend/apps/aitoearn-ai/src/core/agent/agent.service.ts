@@ -1,10 +1,4 @@
 import { randomBytes } from 'node:crypto'
-import {
-  McpServerConfig,
-  SpawnedProcess,
-  SpawnOptions,
-} from '@anthropic-ai/claude-agent-sdk'
-import { ContentBlockParam } from '@anthropic-ai/sdk/resources'
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import {
   AppException,
@@ -20,6 +14,7 @@ import {
 import { RedisPubSubService } from '@yikart/redis'
 import { Request, Response } from 'express'
 import { Observable } from 'rxjs'
+import { config } from '../../config'
 import { AGENT_TASK_ABORT_CHANNEL } from './agent.constants'
 import {
   CreateContentGenerationTaskDto,
@@ -32,7 +27,8 @@ import {
   AgentMessageVo,
   ContentGenerationTaskChunkVo,
 } from './agent.vo'
-import { AgentRuntimeService } from './services/agent-runtime.service'
+import { AgentRuntimeRegistry } from './runtime/agent-runtime.registry'
+import { ClaudeAgentRuntimeService } from './runtime/claude/claude-agent-runtime.service'
 
 @Injectable()
 export class AgentService implements OnModuleInit, OnModuleDestroy {
@@ -40,41 +36,22 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly contentGenerateRepository: ContentGenerationTaskRepository,
-    private readonly agentRuntimeService: AgentRuntimeService,
+    private readonly agentRuntimeRegistry: AgentRuntimeRegistry,
     private readonly redisPubSubService: RedisPubSubService,
   ) { }
 
+  private get runtime() {
+    return this.agentRuntimeRegistry.get(config.agent.runtime)
+  }
+
   /**
-   * 执行 Claude 查询
-   * @param systemPromptContent
-   * @param enhancedContent
-   * @param abortController
-   * @param options
-   * @param options.includePartialMessages
-   * @param options.sessionId
-   * @param options.model
-   * @param options.taskId
-   * @param options.availabilityOperation
-   * @param mcpServers
-   * @param spawnClaudeCodeProcess
-   * @returns
+   * Claude-specific compatibility entry point.
+   * New task execution should go through the configured AgentRuntime instead.
    */
-  public claudeQuery(
-    systemPromptContent: ContentBlockParam[],
-    enhancedContent: ContentBlockParam[],
-    abortController: AbortController,
-    options: Parameters<AgentRuntimeService['claudeQuery']>[3],
-    mcpServers?: Record<string, McpServerConfig>,
-    spawnClaudeCodeProcess?: (options: SpawnOptions) => SpawnedProcess,
-  ) {
-    return this.agentRuntimeService.claudeQuery(
-      systemPromptContent,
-      enhancedContent,
-      abortController,
-      options,
-      mcpServers,
-      spawnClaudeCodeProcess,
-    )
+  public claudeQuery(...args: Parameters<ClaudeAgentRuntimeService['claudeQuery']>) {
+    return this.agentRuntimeRegistry
+      .get<ClaudeAgentRuntimeService>('claude')
+      .claudeQuery(...args)
   }
 
   /**
@@ -95,7 +72,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     req: Request,
     res: Response,
   ): Observable<ContentGenerationTaskChunkVo> {
-    return this.agentRuntimeService.createContentGenerationTask({
+    return this.runtime.createContentGenerationTask({
       userId,
       userType,
       dto,
@@ -298,12 +275,12 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.redisPubSubService.on(AGENT_TASK_ABORT_CHANNEL, (taskId: string) => {
-      this.agentRuntimeService.abortTask(taskId)
+      this.runtime.abortTask(taskId)
     })
   }
 
   async onModuleDestroy() {
     this.logger.debug('Agent service is shutting down, wait running tasks')
-    await this.agentRuntimeService.waitForRunningTasks()
+    await this.runtime.waitForRunningTasks()
   }
 }

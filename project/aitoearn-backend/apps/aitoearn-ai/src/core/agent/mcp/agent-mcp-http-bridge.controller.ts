@@ -9,6 +9,17 @@ import { AgentMcpHttpBridgeService } from './agent-mcp-http-bridge.service'
 export class AgentMcpHttpBridgeController {
   constructor(private readonly bridge: AgentMcpHttpBridgeService) {}
 
+  @Post('sessionTools/:taskId')
+  async handleSessionToolsPost(
+    @GetToken() token: TokenInfo,
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.bridge.handleTaskScopedRequest(taskId, token.id, req, res, body)
+  }
+
   @Post(':serverName')
   async handlePost(
     @GetToken() token: TokenInfo,

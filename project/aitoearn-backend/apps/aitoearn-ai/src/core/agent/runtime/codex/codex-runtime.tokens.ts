@@ -1,0 +1,1 @@
+export const CODEX_CLIENT_FACTORY = Symbol('CODEX_CLIENT_FACTORY')

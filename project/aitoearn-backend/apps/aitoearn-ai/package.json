@@ -22,6 +22,7 @@
     "@nestjs/platform-express": "11.1.24",
     "@nestjs/schedule": "6.1.1",
     "@nestjs/swagger": "11.2.6",
+    "@openai/codex-sdk": "0.148.0",
     "@volcengine/openapi": "1.36.0",
     "@yikart/aitoearn-ai-shared": "workspace:*",
     "@yikart/aitoearn-auth": "workspace:*",

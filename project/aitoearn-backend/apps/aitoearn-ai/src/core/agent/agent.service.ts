@@ -13,7 +13,8 @@ import {
 } from '@yikart/mongodb'
 import { RedisPubSubService } from '@yikart/redis'
 import { Request, Response } from 'express'
-import { Observable } from 'rxjs'
+import { from, Observable } from 'rxjs'
+import { mergeMap } from 'rxjs/operators'
 import { config } from '../../config'
 import { AGENT_TASK_ABORT_CHANNEL } from './agent.constants'
 import {
@@ -29,6 +30,7 @@ import {
 } from './agent.vo'
 import { AgentRuntimeRegistry } from './runtime/agent-runtime.registry'
 import { ClaudeAgentRuntimeService } from './runtime/claude/claude-agent-runtime.service'
+import { isCodexSessionId } from './runtime/codex/codex-session.service'
 
 @Injectable()
 export class AgentService implements OnModuleInit, OnModuleDestroy {
@@ -72,14 +74,26 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     req: Request,
     res: Response,
   ): Observable<ContentGenerationTaskChunkVo> {
-    return this.runtime.createContentGenerationTask({
+    const params = {
       userId,
       userType,
       dto,
       abortController,
       req,
       res,
-    })
+    }
+    if (!dto.taskId)
+      return this.runtime.createContentGenerationTask(params)
+
+    return from(this.contentGenerateRepository.getByUserIdAndId(userId, dto.taskId)).pipe(
+      mergeMap((task) => {
+        // Persisted Codex sessions are namespaced; legacy bare IDs always belong to Claude.
+        const runtimeName = task?.sessionId && isCodexSessionId(task.sessionId)
+          ? 'codex'
+          : 'claude'
+        return this.agentRuntimeRegistry.get(runtimeName).createContentGenerationTask(params)
+      }),
+    )
   }
 
   async getTask(userId: string, taskId: string) {
@@ -275,12 +289,12 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.redisPubSubService.on(AGENT_TASK_ABORT_CHANNEL, (taskId: string) => {
-      this.runtime.abortTask(taskId)
+      this.agentRuntimeRegistry.abortTask(taskId)
     })
   }
 
   async onModuleDestroy() {
     this.logger.debug('Agent service is shutting down, wait running tasks')
-    await this.runtime.waitForRunningTasks()
+    await this.agentRuntimeRegistry.waitForRunningTasks()
   }
 }

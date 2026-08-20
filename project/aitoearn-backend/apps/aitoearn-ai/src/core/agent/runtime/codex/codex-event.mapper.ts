@@ -1,5 +1,5 @@
-import type { CodexSdkEvent } from './codex-sdk.types'
 import type { CodexRuntimeEvent } from './codex-runtime.types'
+import type { CodexSdkEvent } from './codex-sdk.types'
 
 export function mapCodexSdkEvent(event: CodexSdkEvent): CodexRuntimeEvent {
   switch (event.type) {

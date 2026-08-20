@@ -10,7 +10,7 @@ import {
   ContentGenerationTaskResultSchema,
   ContentGenerationTaskTitleUpdatedChunkVo,
 } from '../agent.vo'
-import { successResult, wrapTool } from './mcp.utils'
+import { errorResult, successResult, wrapTool } from './mcp.utils'
 
 export { ContentGenerationTaskResultSchema }
 
@@ -69,6 +69,10 @@ export class UtilMcp {
 
   createSetTitleTool(
     taskId: string,
+    executeWhileActive: (operation: () => Promise<void>) => Promise<boolean> = async (operation) => {
+      await operation()
+      return true
+    },
   ) {
     const titleUpdateSubject = new Subject<ContentGenerationTaskTitleUpdatedChunkVo>()
 
@@ -81,15 +85,21 @@ export class UtilMcp {
       },
       async (args) => {
         const title = args.title
-        await this.contentGenerateRepository.updateById(taskId, {
-          title,
+        const updated = await executeWhileActive(async () => {
+          await this.contentGenerateRepository.updateById(taskId, {
+            title,
+          })
+          this.logger.debug(`Title updated for task ${taskId}: ${title}`)
+          titleUpdateSubject.next(ContentGenerationTaskTitleUpdatedChunkVo.create({
+            type: AgentMessageType.TitleUpdated,
+            taskId,
+            title,
+          }))
         })
-        this.logger.debug(`Title updated for task ${taskId}: ${title}`)
-        titleUpdateSubject.next(ContentGenerationTaskTitleUpdatedChunkVo.create({
-          type: AgentMessageType.TitleUpdated,
-          taskId,
-          title,
-        }))
+
+        if (!updated)
+          return errorResult('Session tools are no longer active')
+
         return successResult('Title updated successfully')
       },
       this.aiAvailability,

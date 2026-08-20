@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common'
 import type { Observable } from 'rxjs'
 import type { ContentGenerationTaskChunkVo } from '../../agent.vo'
-import { AgentRuntimeService } from '../../services/agent-runtime.service'
 import type { AgentRuntime, AgentRuntimeTaskParams } from '../agent-runtime.types'
+import { Injectable } from '@nestjs/common'
+import { AgentRuntimeService } from '../../services/agent-runtime.service'
 
 @Injectable()
 export class ClaudeAgentRuntimeService implements AgentRuntime {

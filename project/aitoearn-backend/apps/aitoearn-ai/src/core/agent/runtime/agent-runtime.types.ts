@@ -4,7 +4,7 @@ import type { Observable } from 'rxjs'
 import type { CreateContentGenerationTaskDto } from '../agent.dto'
 import type { ContentGenerationTaskChunkVo } from '../agent.vo'
 
-export const AGENT_RUNTIME_NAMES = ['claude'] as const
+export const AGENT_RUNTIME_NAMES = ['claude', 'codex'] as const
 
 export type AgentRuntimeName = typeof AGENT_RUNTIME_NAMES[number]
 
@@ -20,9 +20,9 @@ export interface AgentRuntimeTaskParams {
 export interface AgentRuntime {
   readonly name: AgentRuntimeName
 
-  createContentGenerationTask(params: AgentRuntimeTaskParams): Observable<ContentGenerationTaskChunkVo>
+  createContentGenerationTask: (params: AgentRuntimeTaskParams) => Observable<ContentGenerationTaskChunkVo>
 
-  abortTask(taskId: string): void
+  abortTask: (taskId: string) => void
 
-  waitForRunningTasks(): Promise<void>
+  waitForRunningTasks: () => Promise<void>
 }

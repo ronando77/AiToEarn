@@ -64,6 +64,7 @@ import { AideoMcp, AideoToolName } from '../mcp/volcengine/aideo.mcp'
 import { DramaRecapMcp, DramaRecapToolName } from '../mcp/volcengine/drama-recap.mcp'
 import { StyleTransferMcp, StyleTransferToolName } from '../mcp/volcengine/style-transfer.mcp'
 import { VideoEditMcp, VideoEditToolName } from '../mcp/volcengine/video-edit.mcp'
+import { isCodexSessionId } from '../runtime/codex/codex-session.service'
 
 export interface ClaudeQueryOptions {
   includePartialMessages?: boolean
@@ -729,6 +730,10 @@ export class AgentRuntimeService {
       if (!sessionId) {
         this.logger.warn({ taskId: originalTaskId }, `Task ${originalTaskId} has no sessionId, cannot resume`)
         throw new AppException(ResponseCode.AgentTaskNotFound)
+      }
+      if (isCodexSessionId(sessionId)) {
+        this.logger.warn({ taskId: originalTaskId }, `Task ${originalTaskId} does not belong to Claude runtime`)
+        throw new AppException(ResponseCode.AgentSessionRecoveryFailed)
       }
 
       this.logger.debug({ taskId: originalTaskId, sessionId }, `Task ${originalTaskId} resuming with sessionId: ${sessionId}`)

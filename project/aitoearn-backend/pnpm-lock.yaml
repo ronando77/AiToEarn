@@ -168,6 +168,9 @@ importers:
       '@nestjs/swagger':
         specifier: 11.2.6
         version: 11.2.6(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)
+      '@openai/codex-sdk':
+        specifier: 0.148.0
+        version: 0.148.0
       '@volcengine/openapi':
         specifier: 1.36.0
         version: 1.36.0
@@ -2939,6 +2942,51 @@ packages:
 
   '@nx/workspace@22.7.1':
     resolution: {integrity: sha512-wnBMgeogdGaRdxDDzZspSt1U87PMeYJhz1ygr42L9Lot9E5nCf17E85iyHl3YxcMSNslHxnHyTkq7MyQ8hHjdQ==}
+
+  '@openai/codex-sdk@0.148.0':
+    resolution: {integrity: sha512-NWTd6ZxuwsuNFqFTpONQCnFVCf++g7b8eafScW5Enpv6v2lCXHizpr07iK9U6RFnLEuAP2KFirVUlZnxxY0j6A==}
+    engines: {node: '>=18'}
+
+  '@openai/codex@0.148.0':
+    resolution: {integrity: sha512-bh5kH9+BMrFaHGmLeoSansPdfRksvr4UXzjQInns/KRO7r8VJ+6AAW+SqUsE8XcG3+OW/mI4EEy8Gpo9UDXGvQ==}
+    engines: {node: '>=16'}
+    hasBin: true
+
+  '@openai/codex@0.148.0-darwin-arm64':
+    resolution: {integrity: sha512-xgBPFiF1fHUlRS7HE6wGB56LjBJh16kGD7b4TTbwdVBZNB4QDkTok+vdkAGrfpVkfKcwGNhPSKDgCw+KMZOVug==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@openai/codex@0.148.0-darwin-x64':
+    resolution: {integrity: sha512-qepQolhJutfOp+e9i7L3xsi8aoWeCUiiRq274WMWqRj50rKTrXxsuAgkAwDbqEfT3G5VynhYZuQvDsW37JgdNQ==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@openai/codex@0.148.0-linux-arm64':
+    resolution: {integrity: sha512-51DCd+izzk6n4mMh4w2utWj3lTLhSTnCOEJQfRh0LS9nBDkcYZcK3iSKOST6fByRIlLSXuLO33LlYYA1VPot6A==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@openai/codex@0.148.0-linux-x64':
+    resolution: {integrity: sha512-uDT9s7AfMr9xLuJX3ZLVWHgHkUpCnZ33CZjZEdVQhrYCIErkDHsCW5TG290nNjaKngK0WxGt5uCcxeUHv9MWWA==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [linux]
+
+  '@openai/codex@0.148.0-win32-arm64':
+    resolution: {integrity: sha512-a8iOwLzs8UdnlWDHjgK3W/YSBBsUImG8X5XLBjengp3XGJRruhiIsQtUDUOYimCmotKPM4aX7Ub6zjl/KPxMQQ==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@openai/codex@0.148.0-win32-x64':
+    resolution: {integrity: sha512-/Jg8eYw0BqTGNUpnrzzWlK2kbu29NWg7t6pnUDEfxqpTUf+mK8r3okXQn60Zjbk9InYZ4d8SwSjrtOa+i5hSPw==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [win32]
 
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
@@ -6672,6 +6720,7 @@ packages:
   nats@2.29.3:
     resolution: {integrity: sha512-tOQCRCwC74DgBTk4pWZ9V45sk4d7peoE2njVprMRCBXrhJ5q5cYM7i6W+Uvw2qUrcfOSnuisrX7bEx3b3Wx4QA==}
     engines: {node: '>= 14.0.0'}
+    deprecated: Package moved. Use @nats-io/transport-node from https://github.com/nats-io/nats.js
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -10766,6 +10815,37 @@ snapshots:
       - '@swc-node/register'
       - '@swc/core'
       - debug
+
+  '@openai/codex-sdk@0.148.0':
+    dependencies:
+      '@openai/codex': 0.148.0
+
+  '@openai/codex@0.148.0':
+    optionalDependencies:
+      '@openai/codex-darwin-arm64': '@openai/codex@0.148.0-darwin-arm64'
+      '@openai/codex-darwin-x64': '@openai/codex@0.148.0-darwin-x64'
+      '@openai/codex-linux-arm64': '@openai/codex@0.148.0-linux-arm64'
+      '@openai/codex-linux-x64': '@openai/codex@0.148.0-linux-x64'
+      '@openai/codex-win32-arm64': '@openai/codex@0.148.0-win32-arm64'
+      '@openai/codex-win32-x64': '@openai/codex@0.148.0-win32-x64'
+
+  '@openai/codex@0.148.0-darwin-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-darwin-x64':
+    optional: true
+
+  '@openai/codex@0.148.0-linux-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-linux-x64':
+    optional: true
+
+  '@openai/codex@0.148.0-win32-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-win32-x64':
+    optional: true
 
   '@opentelemetry/api@1.9.0': {}
 

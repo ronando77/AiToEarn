@@ -1,5 +1,5 @@
-import type { CodexClientPort, CodexSdkEvent, CodexThreadPort } from './codex-sdk.types'
 import type { CodexRuntimeEvent } from './codex-runtime.types'
+import type { CodexClientFactoryPort, CodexClientPort, CodexSdkEvent, CodexThreadPort } from './codex-sdk.types'
 import { describe, expect, it, vi } from 'vitest'
 import { CodexRuntimeFoundationService } from './codex-runtime-foundation.service'
 import { CodexSessionService } from './codex-session.service'
@@ -20,7 +20,7 @@ function createEventStream(events: CodexSdkEvent[]): AsyncIterable<CodexSdkEvent
   })()
 }
 
-describe('CodexRuntimeFoundationService', () => {
+describe('codexRuntimeFoundationService', () => {
   it('starts a new thread, forwards the abort signal, and binds the thread id', async () => {
     const abortController = new AbortController()
     const thread: CodexThreadPort = {
@@ -40,16 +40,24 @@ describe('CodexRuntimeFoundationService', () => {
       startThread: vi.fn().mockReturnValue(thread),
       resumeThread: vi.fn(),
     }
+    const clientFactory: CodexClientFactoryPort = {
+      create: vi.fn().mockResolvedValue(client),
+    }
     const sessions = new CodexSessionService()
-    const runtime = new CodexRuntimeFoundationService(client, sessions)
+    const runtime = new CodexRuntimeFoundationService(clientFactory, sessions)
 
     const events = await collectEvents(runtime.runTurn({
       taskId: 'task-1',
+      client: { taskId: 'task-1', headers: { authorization: 'Bearer token' } },
       input: 'hello',
       signal: abortController.signal,
     }))
 
     expect(client.startThread).toHaveBeenCalledOnce()
+    expect(clientFactory.create).toHaveBeenCalledWith({
+      taskId: 'task-1',
+      headers: { authorization: 'Bearer token' },
+    })
     expect(client.resumeThread).not.toHaveBeenCalled()
     expect(thread.runStreamed).toHaveBeenCalledWith('hello', {
       signal: abortController.signal,
@@ -74,10 +82,14 @@ describe('CodexRuntimeFoundationService', () => {
       startThread: vi.fn(),
       resumeThread: vi.fn().mockReturnValue(thread),
     }
-    const runtime = new CodexRuntimeFoundationService(client, new CodexSessionService())
+    const clientFactory: CodexClientFactoryPort = {
+      create: vi.fn().mockResolvedValue(client),
+    }
+    const runtime = new CodexRuntimeFoundationService(clientFactory, new CodexSessionService())
 
     await collectEvents(runtime.runTurn({
       taskId: 'task-1',
+      client: { taskId: 'task-1', headers: {} },
       sessionId: 'thread-old',
       input: 'continue',
     }))

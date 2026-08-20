@@ -23,6 +23,11 @@ import { StyleTransferMcp } from './mcp/volcengine/style-transfer.mcp'
 import { VideoEditMcp } from './mcp/volcengine/video-edit.mcp'
 import { AgentRuntimeRegistry } from './runtime/agent-runtime.registry'
 import { ClaudeAgentRuntimeService } from './runtime/claude/claude-agent-runtime.service'
+import { CodexAgentRuntimeService } from './runtime/codex/codex-agent-runtime.service'
+import { CodexRuntimeFoundationService } from './runtime/codex/codex-runtime-foundation.service'
+import { CODEX_CLIENT_FACTORY } from './runtime/codex/codex-runtime.tokens'
+import { CodexSdkClientFactoryService } from './runtime/codex/codex-sdk-client-factory.service'
+import { CodexSessionService } from './runtime/codex/codex-session.service'
 import { AgentRuntimeService } from './services/agent-runtime.service'
 import { SkillInitService } from './skill-init.service'
 
@@ -53,6 +58,14 @@ import { SkillInitService } from './skill-init.service'
     SkillInitService,
     AgentRuntimeService,
     ClaudeAgentRuntimeService,
+    CodexAgentRuntimeService,
+    CodexSdkClientFactoryService,
+    {
+      provide: CODEX_CLIENT_FACTORY,
+      useExisting: CodexSdkClientFactoryService,
+    },
+    CodexSessionService,
+    CodexRuntimeFoundationService,
     AgentRuntimeRegistry,
   ],
   exports: [AgentService],

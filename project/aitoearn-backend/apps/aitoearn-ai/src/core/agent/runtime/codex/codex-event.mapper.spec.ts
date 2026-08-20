@@ -59,4 +59,15 @@ describe('mapCodexSdkEvent', () => {
       fatal: true,
     })
   })
+
+  it('maps top-level SDK errors to fatal errors', () => {
+    expect(mapCodexSdkEvent({
+      type: 'error',
+      message: 'stream failed',
+    })).toEqual({
+      type: 'error',
+      message: 'stream failed',
+      fatal: true,
+    })
+  })
 })
